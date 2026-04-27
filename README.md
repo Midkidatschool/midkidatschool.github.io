@@ -1,1 +1,0 @@
-# midkidatschool.github.io
