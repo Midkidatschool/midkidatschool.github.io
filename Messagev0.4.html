@@ -1,0 +1,504 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Whatsapp 8-bit</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+       body { font-family: 'Space+Mono', monospace; background-color: #020617; color: #f8fafc; overflow: hidden; }
+       .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+       .crt-overlay { pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 2px, 3px 100%; z-index: 50; }
+       .binary-bg { position: fixed; top: 0; left: 0; font-size: 10px; color: rgba(34, 197, 94, 0.03); line-height: 1; z-index: -1; pointer-events: none; }
+       .message-anim { animation: slideIn 0.2s ease-out; }
+       @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+       .scanline { position: absolute; width: 100%; height: 2px; background: rgba(34, 197, 94, 0.1); animation: scan 4s linear infinite; }
+       @keyframes scan { from { top: 0; } to { top: 100%; } }
+       .chat-box::-webkit-scrollbar { width: 4px; }
+       .chat-box::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+   </style>
+</head>
+<body class="h-screen flex items-center justify-center p-2 sm:p-4">
+   <div class="crt-overlay"></div>
+   <div id="binary-layer" class="binary-bg"></div>
+
+
+   <div class="w-full max-w-5xl h-[90vh] glass rounded-2xl flex flex-col shadow-2xl relative overflow-hidden border border-green-500/20">
+       <div class="scanline"></div>
+      
+       <header class="p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2">
+           <div class="flex items-center gap-3">
+               <div id="status-dot" class="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_#ef4444]"></div>
+               <h1 class="text-xl font-bold tracking-tighter text-green-500">WHATSAPP_8-BIT</h1>
+           </div>
+           <div class="flex items-center gap-4">
+               <div class="text-[10px] text-slate-500 uppercase">
+                   Session_Key: <span id="key-display" class="text-green-400 font-bold">--</span>
+               </div>
+               <div id="user-tag" class="bg-slate-800 px-3 py-1 rounded text-[10px] border border-white/10 font-bold uppercase tracking-widest">ANONYMOUS</div>
+              
+               <div class="flex items-center gap-2">
+                   <!-- Plus Button to add new contact -->
+                   <button onclick="showAddContact()" class="p-1 bg-blue-600/20 rounded-md border border-blue-500/30 text-blue-400 hover:bg-blue-600/40 transition-all" title="Add Contact">
+                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                   </button>
+                   <!-- Settings Button -->
+                   <button onclick="toggleSettings()" class="p-1 hover:rotate-90 transition-transform duration-300" title="Settings">
+                       <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                   </button>
+               </div>
+           </div>
+       </header>
+
+
+       <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
+           <!-- Sidebar with Scrollable Contacts -->
+           <aside class="w-full md:w-64 border-r border-white/5 flex flex-col bg-black/20">
+               <div class="p-4 flex-grow flex flex-col overflow-hidden">
+                   <h3 class="text-[10px] font-bold text-slate-500 mb-3 tracking-[0.2em] flex-shrink-0">KNOWN_NODES</h3>
+                   <div id="contacts-list" class="space-y-2 overflow-y-auto flex-grow pr-1 chat-box">
+                       <!-- Contacts load here -->
+                   </div>
+               </div>
+               <div class="p-4 border-t border-white/5 bg-black/40 flex-shrink-0">
+                   <div class="text-[9px] text-slate-500 mb-1 uppercase tracking-tighter">Your Public Address:</div>
+                   <div id="my-short-id" class="text-blue-400 font-mono text-[10px] break-all mb-2 p-2 bg-black/50 rounded border border-blue-900/30">----</div>
+                   <button onclick="copyId()" class="w-full py-2 text-[9px] bg-blue-900/20 border border-blue-500/50 rounded hover:bg-blue-600/40 transition-colors font-bold uppercase">COPY TO CLIPBOARD</button>
+               </div>
+           </aside>
+
+
+           <!-- Conversation Area -->
+           <main class="flex-grow flex flex-col relative">
+               <!-- Add Contact Modal -->
+               <div id="add-contact-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
+                   <div class="bg-slate-900 border border-blue-700/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
+                       <h2 class="text-blue-400 font-bold text-center uppercase tracking-widest">Add New Node</h2>
+                       <div class="text-[10px] text-slate-400 text-center">Paste the ID of the person you want to chat with.</div>
+                       <input type="text" id="add-peer-id-input" placeholder="Paste ID here..." class="w-full p-3 rounded-lg bg-slate-950 border border-slate-700 text-blue-400 font-mono text-sm text-center outline-none focus:border-blue-500">
+                       <div class="flex gap-2">
+                           <button onclick="hideAddContact()" class="flex-1 py-3 text-slate-500 font-bold text-xs">CANCEL</button>
+                           <button onclick="handleAddContact()" class="flex-1 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">LINK NODE</button>
+                       </div>
+                   </div>
+               </div>
+
+
+               <!-- Settings Modal -->
+               <div id="settings-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
+                   <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full space-y-6 shadow-2xl">
+                       <h2 class="text-green-500 font-bold text-center uppercase tracking-widest">Node Settings</h2>
+                      
+                       <div class="space-y-2">
+                           <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Your Alias</label>
+                           <div class="flex gap-2">
+                               <input type="text" id="change-name-input" class="flex-grow bg-slate-950 border border-slate-700 rounded p-2 text-xs text-green-400 outline-none">
+                               <button onclick="updateAlias()" class="bg-green-600 px-3 py-1 rounded text-[10px] font-bold">SAVE</button>
+                           </div>
+                       </div>
+
+
+                       <div class="space-y-2 pt-4 border-t border-white/5">
+                           <button onclick="clearContacts()" class="w-full py-2 bg-yellow-600/10 border border-yellow-600/50 text-yellow-500 rounded text-[10px] font-bold hover:bg-yellow-600 hover:text-white transition-all uppercase">Erase Contact History</button>
+                           <button onclick="resetMyCode()" class="w-full py-2 bg-orange-600/10 border border-orange-600/50 text-orange-500 rounded text-[10px] font-bold hover:bg-orange-600 hover:text-white transition-all uppercase">Generate New ID</button>
+                           <button onclick="nukeAllData()" class="w-full py-2 bg-red-600/10 border border-red-600/50 text-red-500 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all uppercase">Factory Reset</button>
+                       </div>
+                      
+                       <button onclick="toggleSettings()" class="w-full text-center text-[10px] text-slate-500 uppercase py-2">Close</button>
+                   </div>
+               </div>
+
+
+               <!-- Initial Setup (Only shows first time) -->
+               <div id="connect-overlay" class="absolute inset-0 z-10 glass flex items-center justify-center p-6 text-center">
+                   <div class="max-w-xs w-full space-y-6">
+                       <div id="init-form">
+                           <h2 class="text-lg font-bold text-green-500 mb-2 tracking-tighter">IDENTIFY YOUR NODE</h2>
+                           <p class="text-[10px] text-slate-400 mb-6 uppercase">Encrypted peer-to-peer 8-bit messenger</p>
+                           <input type="text" id="username-input" placeholder="Alias (e.g. Neo)" maxlength="12" class="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 text-green-400 font-mono mb-4 text-center outline-none focus:border-green-500">
+                           <button onclick="registerUser()" class="w-full py-3 bg-green-600 rounded-lg font-bold hover:bg-green-500 shadow-lg shadow-green-900/40 transition-all">START ENCRYPTION</button>
+                       </div>
+                   </div>
+               </div>
+
+
+               <!-- Empty State (When no contact selected) -->
+               <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-12 text-center pointer-events-none z-0">
+                   <div class="w-16 h-16 border-2 border-green-500/20 rounded-full mb-4 flex items-center justify-center">
+                       <svg class="w-8 h-8 text-green-500/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                   </div>
+                   <h3 class="text-slate-500 font-bold uppercase tracking-[0.3em]">No Active Link</h3>
+                   <p class="text-[9px] text-slate-600 mt-2 max-w-[180px]">SELECT A KNOWN NODE OR PRESS THE [+] BUTTON TO START A NEW TRANSMISSION.</p>
+               </div>
+
+
+               <!-- Chat Messages Scroll Area -->
+               <div id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-4 chat-box relative z-1"></div>
+
+
+               <!-- Input Field -->
+               <div class="p-4 bg-black/40 border-t border-white/5 relative z-1">
+                   <div class="flex gap-3">
+                       <input type="text" id="msg-input" placeholder="Encrypt message..." class="flex-grow p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm font-mono outline-none focus:border-green-500/50 transition-colors" onkeypress="if(event.key==='Enter') sendEncrypted()">
+                       <button onclick="sendEncrypted()" class="bg-green-600 px-6 py-3 rounded-xl font-bold active:scale-95 transition-transform hover:bg-green-500 shadow-lg shadow-green-900/20">SEND</button>
+                   </div>
+               </div>
+           </main>
+       </div>
+      
+       <!-- UI Toast -->
+       <div id="toast" class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-blue-600 text-[10px] px-6 py-2 rounded-full opacity-0 pointer-events-none transition-opacity z-50 font-bold uppercase tracking-widest shadow-xl"></div>
+   </div>
+
+
+   <script>
+       const AZ = ["`","1","2","3","4","5","6","7","8","9","0","-","=","q","w","e","r","t","y","u","i","o","p","[","]","\\","a","s","d","f","g","h","j","k","l",";","'","z","x","c","v","b","n","m",",",".","/","!","@","#","$","%","^","&","*","(",")","_","+","Q","W","E","R","T","Y","U","I","O","P","{","}","|","A","S","D","F","G","H","J","K","L",":","\"","Z","X","C","V","B","N","M","<",">","?"," ","😁","🙌","👌","😍","❤️","🤣","😂","😊","😒","👍","😎","💀","🤓","©","🙄","🫠","🤑"];
+       const BINARY = AZ.map((_, i) => (i + 128).toString(2).padStart(8, '0'));
+
+
+       let peer, conn;
+       let myAlias = localStorage.getItem('chat_alias') || "";
+       let savedPeerId = localStorage.getItem('chat_peer_id') || null;
+       let myId = "";
+       let activePeerId = null;
+       // contacts structure: { id: { alias, sessionKey, lastSeen, messages: [] } }
+       let contacts = JSON.parse(localStorage.getItem('chat_contacts') || '{}');
+       let appVisible = !document.hidden;
+
+
+       document.addEventListener('visibilitychange', () => appVisible = !document.hidden);
+       if (Notification.permission === 'default') Notification.requestPermission();
+
+
+       // --- ENCRYPTION ENGINE (PER-SESSION KEYING) ---
+       function cycle(text, key, mode) {
+           let res = "";
+           const shift = mode === 'enc' ? -key : key;
+           for (let i = 0; i < text.length; i++) {
+               let char = text[i];
+               if (text.codePointAt(i) > 0xFFFF) { char = String.fromCodePoint(text.codePointAt(i)); i++; }
+               let pos = AZ.indexOf(char);
+               if (pos !== -1) {
+                   let n = (pos + shift) % AZ.length;
+                   if (n < 0) n += AZ.length;
+                   res += mode === 'enc' ? BINARY[n] : AZ[n];
+               } else if (mode === 'dec') res += char;
+           }
+           return res;
+       }
+
+
+       function decodeBinary(binStr, key) {
+           let res = "";
+           for (let i = 0; i < binStr.length; i += 8) {
+               let chunk = binStr.substring(i, i + 8);
+               let pos = BINARY.indexOf(chunk);
+               if (pos !== -1) {
+                   let n = (pos + key) % AZ.length;
+                   res += AZ[n];
+               }
+           }
+           return res;
+       }
+
+
+       function getRotatedKey(oldKey) {
+           let next = (oldKey * 7 + 13) % AZ.length;
+           return next <= 0 ? 7 : next;
+       }
+
+
+       // --- IDENTITY ---
+       function registerUser() {
+           const name = document.getElementById('username-input').value.trim();
+           if (!name) return;
+           myAlias = name;
+           localStorage.setItem('chat_alias', myAlias);
+           completeLogin();
+       }
+
+
+       function updateAlias() {
+           const newName = document.getElementById('change-name-input').value.trim();
+           if (!newName) return;
+           myAlias = newName;
+           localStorage.setItem('chat_alias', myAlias);
+           document.getElementById('user-tag').innerText = myAlias;
+           if (conn?.open) conn.send({ type: 'alias-update', alias: myAlias });
+           toast("NODE ALIAS UPDATED");
+           toggleSettings();
+       }
+
+
+       function completeLogin() {
+           document.getElementById('user-tag').innerText = myAlias;
+           document.getElementById('change-name-input').value = myAlias;
+           document.getElementById('connect-overlay').classList.add('hidden');
+           initPeer();
+           renderContacts();
+       }
+
+
+       // --- P2P CORE ---
+       function initPeer() {
+           peer = savedPeerId ? new Peer(savedPeerId) : new Peer();
+           peer.on('open', (id) => {
+               myId = id;
+               localStorage.setItem('chat_peer_id', id);
+               document.getElementById('my-short-id').innerText = id;
+               document.getElementById('status-dot').className = "w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]";
+               toast("NODE ONLINE");
+           });
+
+
+           // Handling incoming connections from anyone
+           peer.on('connection', (c) => {
+               // If we're already talking to someone, don't necessarily kill it,
+               // but for simplicity in this 1-on-1 UI, we swap active connection.
+               if (conn) conn.close();
+               conn = c;
+               setupEvents();
+           });
+       }
+
+
+       function initiateConnection(targetId) {
+           if (!targetId || targetId === myId) return;
+          
+           // Switch UI to selected contact
+           activePeerId = targetId;
+           document.getElementById('empty-state').classList.add('hidden');
+           document.getElementById('chat-messages').innerHTML = ""; // Clear for transition
+          
+           // Re-render chat history if we stored it (not stored in this simple version, but prepared)
+          
+           if (conn) conn.close();
+           conn = peer.connect(targetId);
+           setupEvents();
+           renderContacts();
+       }
+
+
+       function setupEvents() {
+           conn.on('open', () => {
+               const pid = conn.peer;
+               activePeerId = pid;
+               document.getElementById('empty-state').classList.add('hidden');
+              
+               // Initialize session key for this specific contact if new
+               if (!contacts[pid]) {
+                   contacts[pid] = { alias: "Unknown Node", id: pid, sessionKey: 42 };
+               }
+              
+               document.getElementById('key-display').innerText = contacts[pid].sessionKey;
+               conn.send({ type: 'hi', alias: myAlias, key: contacts[pid].sessionKey });
+               toast("LINK ESTABLISHED: " + pid.substring(0,6));
+               renderContacts();
+           });
+
+
+           conn.on('data', (data) => {
+               const pid = conn.peer;
+               if (!contacts[pid]) contacts[pid] = { alias: "Stranger", id: pid, sessionKey: 42 };
+
+
+               if (data.type === 'hi') {
+                   contacts[pid].alias = data.alias;
+                   contacts[pid].sessionKey = data.key;
+                   updateUIForKey(pid);
+                   saveContacts();
+               } else if (data.type === 'alias-update') {
+                   contacts[pid].alias = data.alias;
+                   saveContacts();
+                   renderContacts();
+               } else if (data.type === 'msg') {
+                   const dec = decodeBinary(data.payload, contacts[pid].sessionKey);
+                  
+                   // Show message only if this is the active chat
+                   if (activePeerId === pid) {
+                       appendMessage(contacts[pid].alias, dec, data.payload, false, data.id, data.time);
+                       if (appVisible) {
+                           conn.send({ type: 'read', msgId: data.id });
+                       }
+                   }
+
+
+                   // Always notify if background
+                   if (!appVisible || activePeerId !== pid) {
+                       if (Notification.permission === "granted") {
+                           new Notification(`8-Bit: ${contacts[pid].alias}`, { body: "Incoming encrypted transmission..." });
+                       }
+                   }
+                  
+                   // Rotate the SESSION key for this specific contact
+                   contacts[pid].sessionKey = getRotatedKey(contacts[pid].sessionKey);
+                   updateUIForKey(pid);
+                   saveContacts();
+
+
+                   // Handle Read Receipt Logic if we switch back later
+                   if (!appVisible || activePeerId !== pid) {
+                       const refocus = () => {
+                           if (!document.hidden && activePeerId === pid && conn?.open) {
+                               conn.send({ type: 'read', msgId: data.id });
+                               document.removeEventListener('visibilitychange', refocus);
+                           }
+                       };
+                       document.addEventListener('visibilitychange', refocus);
+                   }
+               } else if (data.type === 'read') {
+                   if (activePeerId === pid) updateReadStatus(data.msgId);
+               }
+           });
+
+
+           conn.on('close', () => {
+               if (activePeerId === conn.peer) {
+                   toast("NODE DISCONNECTED");
+               }
+               renderContacts();
+           });
+       }
+
+
+       function sendEncrypted() {
+           const input = document.getElementById('msg-input');
+           const val = input.value.trim();
+           if (!val || !conn?.open) return;
+
+
+           const pid = conn.peer;
+           const msgId = 'm' + Date.now();
+           const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+           const enc = cycle(val, contacts[pid].sessionKey, 'enc');
+          
+           conn.send({ type: 'msg', payload: enc, id: msgId, time: time });
+           appendMessage(myAlias, val, enc, true, msgId, time);
+          
+           // Rotate key for this contact only
+           contacts[pid].sessionKey = getRotatedKey(contacts[pid].sessionKey);
+           updateUIForKey(pid);
+           saveContacts();
+          
+           input.value = "";
+       }
+
+
+       // --- CONTACT MANAGEMENT ---
+       function showAddContact() { document.getElementById('add-contact-modal').classList.remove('hidden'); }
+       function hideAddContact() { document.getElementById('add-contact-modal').classList.add('hidden'); }
+      
+       function handleAddContact() {
+           const id = document.getElementById('add-peer-id-input').value.trim();
+           if (!id) return;
+           if (id === myId) { toast("CANNOT LINK SELF"); return; }
+          
+           // Add to contacts if not exist
+           if (!contacts[id]) {
+               contacts[id] = { alias: "Pending Node...", id: id, sessionKey: 42 };
+               saveContacts();
+           }
+          
+           initiateConnection(id);
+           hideAddContact();
+           document.getElementById('add-peer-id-input').value = "";
+       }
+
+
+       function updateUIForKey(pid) {
+           if (activePeerId === pid) {
+               document.getElementById('key-display').innerText = contacts[pid].sessionKey;
+           }
+           renderContacts();
+       }
+
+
+       function appendMessage(sender, text, binary, isMe, msgId, time) {
+           const box = document.getElementById('chat-messages');
+           const div = document.createElement('div');
+           div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} message-anim`;
+           div.id = msgId;
+           const receipt = isMe ? `<div class="read-status text-slate-700 transition-colors duration-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>` : '';
+
+
+           div.innerHTML = `
+               <div class="flex items-center gap-2 mb-1 px-1">
+                   <span class="text-[9px] font-bold text-slate-500 uppercase">${sender}</span>
+                   <span class="text-[8px] text-slate-600">${time}</span>
+               </div>
+               <div class="max-w-[85%] glass p-3 rounded-2xl relative ${isMe ? 'bg-green-600/20 border-green-500/30' : 'bg-slate-800/40 border-white/5'}">
+                   <div class="text-sm font-sans">${text}</div>
+                   <div class="mt-2 pt-2 border-t border-white/5 text-[7px] font-mono opacity-30 flex justify-between items-center">
+                       <span class="truncate pr-2 uppercase">Sig: ${binary.substring(0, 10)}</span>
+                       ${receipt}
+                   </div>
+               </div>`;
+           box.appendChild(div);
+           box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+       }
+
+
+       function updateReadStatus(id) {
+           const el = document.getElementById(id)?.querySelector('.read-status');
+           if (el) {
+               el.className = "read-status text-blue-400 drop-shadow-[0_0_3px_#60a5fa]";
+               el.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7m-10 0l4 4L22 7"></path></svg>`;
+           }
+       }
+
+
+       function saveContacts() { localStorage.setItem('chat_contacts', JSON.stringify(contacts)); }
+
+
+       function renderContacts() {
+           const list = document.getElementById('contacts-list');
+           list.innerHTML = "";
+           const contactKeys = Object.keys(contacts);
+          
+           if (contactKeys.length === 0) {
+               list.innerHTML = `<div class="text-[9px] text-slate-600 italic text-center py-4 uppercase">No saved nodes</div>`;
+               return;
+           }
+
+
+           contactKeys.forEach(id => {
+               const isActive = activePeerId === id;
+               const isOnline = (conn && conn.peer === id && conn.open);
+               const div = document.createElement('div');
+               div.className = `p-3 rounded-xl border cursor-pointer transition-all ${isActive ? 'bg-green-600/10 border-green-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`;
+              
+               div.innerHTML = `
+                   <div onclick="initiateConnection('${id}')" class="flex items-center gap-3">
+                       <div class="w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-slate-700'}"></div>
+                       <div class="flex-grow min-w-0">
+                           <div class="font-bold text-[11px] truncate uppercase ${isActive ? 'text-green-400' : 'text-slate-300'}">${contacts[id].alias}</div>
+                           <div class="text-slate-500 text-[8px] truncate font-mono">${id}</div>
+                       </div>
+                   </div>`;
+               list.appendChild(div);
+           });
+       }
+
+
+       // --- SYSTEM TOOLS ---
+       function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
+       function clearContacts() { if(confirm("Permanently erase all contact history?")) { contacts={}; saveContacts(); activePeerId=null; document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); } }
+       function resetMyCode() { if(confirm("Generate a new Node ID? Your friends will need the new ID to reach you.")) { localStorage.removeItem('chat_peer_id'); location.reload(); } }
+       function nukeAllData() { if(confirm("WARNING: This will wipe your handle, ID, and all contacts. Proceed?")) { localStorage.clear(); location.reload(); } }
+       function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 3000); }
+       function copyId() { navigator.clipboard.writeText(myId).then(() => toast("ID COPIED TO CLIPBOARD")); }
+
+
+       // Background Binary Effect
+       const bg = document.getElementById('binary-layer');
+       let binStr = ""; for(let i=0; i<3000; i++) binStr += Math.round(Math.random());
+       bg.innerText = binStr;
+
+
+       if (myAlias) completeLogin();
+   </script>
+</body>
+</html>
