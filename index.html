@@ -88,7 +88,7 @@
 
                <!-- Settings Modal -->
                <div id="settings-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
-                   <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full space-y-6 shadow-2xl">
+                   <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto space-y-6 shadow-2xl">
                        <h2 class="text-green-500 font-bold text-center uppercase tracking-widest">Messenger Settings</h2>
                       
                        <div class="space-y-2">
@@ -126,7 +126,8 @@
                            <div class="space-y-2">
                                <label class="text-[10px] text-slate-400 uppercase tracking-tighter">New Group Chat</label>
                                <input type="text" id="group-name-input" placeholder="Group name" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-blue-400 outline-none">
-                               <input type="text" id="group-members-input" placeholder="Member IDs, comma separated" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-blue-400 outline-none">
+                               <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Select Members</label>
+                               <div id="group-member-select" class="space-y-2 max-h-32 overflow-y-auto"></div>
                                <button onclick="createGroup()" class="w-full py-2 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">CREATE GROUP</button>
                            </div>
                            <div>
@@ -146,7 +147,28 @@
                    </div>
                </div>
 
-               <div id="connection-request-overlay" class="hidden absolute inset-0 z-40 glass flex items-center justify-center p-6">
+               <div id="group-settings-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
+                   <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto shadow-2xl space-y-6">
+                       <h2 id="group-settings-title" class="text-green-500 font-bold text-center uppercase tracking-widest">Group Settings</h2>
+                      
+                       <div class="space-y-2">
+                           <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Members</label>
+                           <div id="group-members-list" class="space-y-2"></div>
+                       </div>
+
+                       <div class="space-y-2">
+                           <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Add Member</label>
+                           <input type="text" id="add-member-input" placeholder="Enter PID" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-300 outline-none">
+                           <button onclick="addMember()" class="w-full py-2 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">ADD MEMBER</button>
+                       </div>
+
+                       <div class="space-y-2 pt-4 border-t border-white/5">
+                           <button onclick="leaveGroup()" class="w-full py-2 bg-red-600/10 border border-red-600/50 text-red-400 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all uppercase">Leave Group</button>
+                       </div>
+                      
+                       <button onclick="closeGroupSettings()" class="w-full text-center text-[10px] text-slate-500 uppercase py-2">Close</button>
+                   </div>
+               </div>
                    <div class="bg-slate-900 border border-blue-700/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
                        <h2 class="text-blue-400 font-bold text-center uppercase tracking-widest">Connection Request</h2>
                        <div id="request-info" class="text-[10px] text-slate-400 text-center">Incoming request from unknown contact.</div>
@@ -223,6 +245,7 @@
        let groups = JSON.parse(localStorage.getItem('chat_groups') || '{}');
        let settings = Object.assign({ readReceipts: true, blockAnonymous: false, allowedContactsOnly: false, blockedList: [] }, JSON.parse(localStorage.getItem('chat_settings') || '{}'));
        let appVisible = !document.hidden;
+       let holdTimeouts = new Map();
 
 
        document.addEventListener('visibilitychange', () => appVisible = !document.hidden);
@@ -332,11 +355,18 @@
                    <span class="truncate">${entry}</span>
                    <button onclick="removeBlockedEntry('${entry.replace(/'/g,"\\'")}')" class="text-rose-400 hover:text-rose-300">×</button>
                </div>`).join('');
+           const groupMemberSelect = document.getElementById('group-member-select');
+           groupMemberSelect.innerHTML = Object.keys(contacts).map(id => `
+               <label class="flex items-center gap-2 rounded-lg bg-slate-950 border border-slate-700 p-2 text-[9px] text-slate-300">
+                   <input type="checkbox" value="${id}" class="member-checkbox">
+                   <span class="truncate">${contacts[id].alias} (${id})</span>
+               </label>`).join('');
            const groupList = document.getElementById('group-list');
            groupList.innerHTML = Object.keys(groups).map(id => {
                const group = groups[id];
                return `<div class="flex items-center justify-between gap-2 rounded-lg bg-slate-950 border border-slate-700 p-2 text-[9px] text-slate-300">
                    <button onclick="selectGroup('${id}')" class="text-left flex-1 truncate">${group.name}</button>
+                   <button onclick="openGroupSettings('${id}')" class="text-blue-400">⚙️</button>
                    <button onclick="removeGroup('${id}')" class="text-rose-400 hover:text-rose-300">×</button>
                </div>`;
            }).join('');
@@ -368,13 +398,14 @@
 
        function createGroup() {
            const name = document.getElementById('group-name-input').value.trim();
-           const members = document.getElementById('group-members-input').value.split(',').map(s => s.trim()).filter(Boolean);
+           const members = Array.from(document.querySelectorAll('.member-checkbox:checked')).map(cb => cb.value);
            if (!name || members.length === 0) return toast('GROUP NAME AND MEMBERS REQUIRED');
            const groupId = 'g-' + Date.now();
            groups[groupId] = { name, members };
            saveGroups();
            document.getElementById('group-name-input').value = '';
-           document.getElementById('group-members-input').value = '';
+           // Uncheck all
+           document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = false);
            renderSettings();
            renderContacts();
            toast('GROUP CREATED');
@@ -394,6 +425,56 @@
            document.getElementById('chat-messages').innerHTML = '';
            document.getElementById('empty-state').classList.add('hidden');
            renderContacts();
+       }
+
+       let currentGroupId = null;
+
+       function openGroupSettings(id) {
+           currentGroupId = id;
+           renderGroupSettings();
+           document.getElementById('group-settings-modal').classList.remove('hidden');
+       }
+
+       function closeGroupSettings() {
+           document.getElementById('group-settings-modal').classList.add('hidden');
+           currentGroupId = null;
+       }
+
+       function renderGroupSettings() {
+           const group = groups[currentGroupId];
+           if (!group) return;
+           document.getElementById('group-settings-title').innerText = `Group Settings: ${group.name}`;
+           const list = document.getElementById('group-members-list');
+           list.innerHTML = group.members.map(id => `<div class="rounded-lg bg-slate-950 border border-slate-700 p-2 text-[9px] text-slate-300">${contacts[id]?.alias || id}</div>`).join('');
+       }
+
+       function addMember() {
+           const newId = document.getElementById('add-member-input').value.trim();
+           if (!newId || !groups[currentGroupId]) return;
+           if (!groups[currentGroupId].members.includes(newId)) {
+               groups[currentGroupId].members.push(newId);
+               saveGroups();
+               renderGroupSettings();
+               document.getElementById('add-member-input').value = '';
+               toast('MEMBER ADDED');
+           }
+       }
+
+       function leaveGroup() {
+           if (!currentGroupId || !groups[currentGroupId]) return;
+           groups[currentGroupId].members = groups[currentGroupId].members.filter(id => id !== myId);
+           if (groups[currentGroupId].members.length === 0) {
+               delete groups[currentGroupId];
+           }
+           if (activeGroupId === currentGroupId) {
+               activeGroupId = null;
+               document.getElementById('chat-messages').innerHTML = '';
+               document.getElementById('empty-state').classList.remove('hidden');
+           }
+           saveGroups();
+           renderContacts();
+           closeGroupSettings();
+           toast('LEFT GROUP');
        }
 
        async function getSecretKey(pid) {
@@ -815,9 +896,13 @@
            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} message-anim`;
            div.id = msgId;
            div.dataset.sentAt = sentAt;
+           div.onmousedown = () => startHold(msgId);
+           div.onmouseup = () => endHold(msgId);
+           div.ontouchstart = () => startHold(msgId);
+           div.ontouchend = () => endHold(msgId);
            const receipt = isMe ? `<div class="read-status text-slate-700 transition-colors duration-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>` : '';
            const controls = `
-                   <div class="mt-3 flex gap-2 justify-end">
+                   <div id="controls-${msgId}" class="hidden mt-3 flex gap-2 justify-end">
                        <button onclick="deleteMessage('${msgId}')" class="text-[8px] uppercase tracking-[0.25em] px-2 py-1 rounded-full bg-slate-700/80 text-slate-300 hover:bg-slate-600 transition">Delete</button>
                        ${isMe ? `<button onclick="unsendMessage('${msgId}')" class="text-[8px] uppercase tracking-[0.25em] px-2 py-1 rounded-full bg-rose-700/80 text-rose-200 hover:bg-rose-600 transition">Unsend</button>` : ''}
                    </div>`;
@@ -845,6 +930,22 @@
            if (el) {
                el.className = "read-status text-blue-400 drop-shadow-[0_0_3px_#60a5fa]";
                el.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7m-10 0l4 4L22 7"></path></svg>`;
+           }
+       }
+
+       function startHold(msgId) {
+           const timeout = setTimeout(() => {
+               const controls = document.getElementById(`controls-${msgId}`);
+               if (controls) controls.classList.remove('hidden');
+           }, 4000);
+           holdTimeouts.set(msgId, timeout);
+       }
+
+       function endHold(msgId) {
+           const timeout = holdTimeouts.get(msgId);
+           if (timeout) {
+               clearTimeout(timeout);
+               holdTimeouts.delete(msgId);
            }
        }
 
