@@ -235,6 +235,7 @@
        let pendingConnection = null;
        let pendingRequestPeer = null;
        let pendingRequestAlias = '';
+       let isIncomingConnection = false;
        let myAlias = localStorage.getItem('chat_alias') || "";
        let savedPeerId = localStorage.getItem('chat_peer_id') || null;
        let myId = "";
@@ -606,6 +607,7 @@
                if (conn) conn.close();
                conn = c;
                pendingConnection = c;
+               isIncomingConnection = true;
                setupEvents();
            });
        }
@@ -615,6 +617,7 @@
            if (!targetId || targetId === myId) return;
           
            activeGroupId = null;
+           isIncomingConnection = false;
            // Switch UI to selected contact
            activePeerId = targetId;
            document.getElementById('empty-state').classList.add('hidden');
@@ -664,7 +667,7 @@
                        contacts[pid].peerPublicKey = data.dhPub;
                        deriveSharedSecret(pid).catch(() => null);
                    }
-                   if (settings.allowedContactsOnly && !contacts[pid].approved) {
+                   if (isIncomingConnection && settings.allowedContactsOnly && !contacts[pid].approved) {
                        showConnectionRequest(pid, alias);
                        return;
                    }
@@ -813,6 +816,7 @@
            document.getElementById('connection-request-overlay').classList.add('hidden');
            pendingRequestPeer = null;
            pendingRequestAlias = '';
+           isIncomingConnection = false;
        }
 
        function acceptRequest() {
@@ -840,6 +844,7 @@
            if (conn && conn === pendingConnection) conn = null;
            pendingConnection = null;
            hideConnectionRequest();
+           renderContacts();
            toast('CONNECTION DECLINED');
        }
 
