@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
    <meta charset="UTF-8">
@@ -57,7 +57,7 @@
            <!-- Sidebar with Scrollable Contacts -->
            <aside class="w-full md:w-64 border-r border-white/5 flex flex-col bg-black/20">
                <div class="p-4 flex-grow flex flex-col overflow-hidden">
-                   <h3 class="text-[10px] font-bold text-slate-500 mb-3 tracking-[0.2em] flex-shrink-0">KNOWN_NODES</h3>
+                   <h3 class="text-[10px] font-bold text-slate-500 mb-3 tracking-[0.2em] flex-shrink-0">CONTACTS</h3>
                    <div id="contacts-list" class="space-y-2 overflow-y-auto flex-grow pr-1 chat-box">
                        <!-- Contacts load here -->
                    </div>
@@ -75,12 +75,12 @@
                <!-- Add Contact Modal -->
                <div id="add-contact-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
                    <div class="bg-slate-900 border border-blue-700/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
-                       <h2 class="text-blue-400 font-bold text-center uppercase tracking-widest">Add New Node</h2>
+                       <h2 class="text-blue-400 font-bold text-center uppercase tracking-widest">Add New Contact</h2>
                        <div class="text-[10px] text-slate-400 text-center">Paste the ID of the person you want to chat with.</div>
                        <input type="text" id="add-peer-id-input" placeholder="Paste ID here..." class="w-full p-3 rounded-lg bg-slate-950 border border-slate-700 text-blue-400 font-mono text-sm text-center outline-none focus:border-blue-500">
                        <div class="flex gap-2">
                            <button onclick="hideAddContact()" class="flex-1 py-3 text-slate-500 font-bold text-xs">CANCEL</button>
-                           <button onclick="handleAddContact()" class="flex-1 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">LINK NODE</button>
+                           <button onclick="handleAddContact()" class="flex-1 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">ADD CONTACT</button>
                        </div>
                    </div>
                </div>
@@ -89,7 +89,7 @@
                <!-- Settings Modal -->
                <div id="settings-modal" class="hidden absolute inset-0 z-30 glass flex items-center justify-center p-6">
                    <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full space-y-6 shadow-2xl">
-                       <h2 class="text-green-500 font-bold text-center uppercase tracking-widest">Node Settings</h2>
+                       <h2 class="text-green-500 font-bold text-center uppercase tracking-widest">Messenger Settings</h2>
                       
                        <div class="space-y-2">
                            <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Your Alias</label>
@@ -99,14 +99,61 @@
                            </div>
                        </div>
 
+                       <div class="space-y-4 pt-4 border-t border-white/5">
+                           <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-950 border border-slate-700 p-3 text-[10px] uppercase tracking-[0.2em] text-slate-300">
+                               <span>Read Receipts</span>
+                               <label class="flex items-center gap-2 text-[10px]"><input id="read-receipts-toggle" type="checkbox" onchange="toggleSetting('readReceipts')" class="h-4 w-4" /> ON</label>
+                           </div>
+                           <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-950 border border-slate-700 p-3 text-[10px] uppercase tracking-[0.2em] text-slate-300">
+                               <span>Block Anonymous</span>
+                               <label class="flex items-center gap-2 text-[10px]"><input id="block-anonymous" type="checkbox" onchange="toggleSetting('blockAnonymous')" class="h-4 w-4" /> ON</label>
+                           </div>
+                           <div class="flex items-center justify-between gap-2 rounded-xl bg-slate-950 border border-slate-700 p-3 text-[10px] uppercase tracking-[0.2em] text-slate-300">
+                               <span>Allowed Contacts Only</span>
+                               <label class="flex items-center gap-2 text-[10px]"><input id="allowed-contacts-only" type="checkbox" onchange="toggleSetting('allowedContactsOnly')" class="h-4 w-4" /> ON</label>
+                           </div>
+                           <div class="space-y-2">
+                               <label class="text-[10px] text-slate-400 uppercase tracking-tighter">Blocked IDs / Names</label>
+                               <div class="flex gap-2">
+                                   <input type="text" id="blocked-input" placeholder="Add name or PID" class="flex-grow bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-300 outline-none">
+                                   <button onclick="addBlockedEntry()" class="bg-rose-600 px-3 py-1 rounded text-[10px] font-bold">BLOCK</button>
+                               </div>
+                               <div id="blocked-list" class="space-y-2"></div>
+                           </div>
+                       </div>
+
+                       <div class="space-y-4 pt-4 border-t border-white/5">
+                           <div class="space-y-2">
+                               <label class="text-[10px] text-slate-400 uppercase tracking-tighter">New Group Chat</label>
+                               <input type="text" id="group-name-input" placeholder="Group name" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-blue-400 outline-none">
+                               <input type="text" id="group-members-input" placeholder="Member IDs, comma separated" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-blue-400 outline-none">
+                               <button onclick="createGroup()" class="w-full py-2 bg-blue-600 rounded-lg font-bold hover:bg-blue-500">CREATE GROUP</button>
+                           </div>
+                           <div>
+                               <div class="text-[10px] text-slate-400 uppercase tracking-tighter mb-2">Saved Groups</div>
+                               <div id="group-list" class="space-y-2"></div>
+                           </div>
+                       </div>
 
                        <div class="space-y-2 pt-4 border-t border-white/5">
-                           <button onclick="clearContacts()" class="w-full py-2 bg-yellow-600/10 border border-yellow-600/50 text-yellow-500 rounded text-[10px] font-bold hover:bg-yellow-600 hover:text-white transition-all uppercase">Erase Contact History</button>
+                           <button onclick="removeActiveContact()" class="w-full py-2 bg-red-600/10 border border-red-600/50 text-red-400 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all uppercase">Remove Selected Contact</button>
+                           <button onclick="clearContacts()" class="w-full py-2 bg-yellow-600/10 border border-yellow-600/50 text-yellow-500 rounded text-[10px] font-bold hover:bg-yellow-600 hover:text-white transition-all uppercase">Erase All Contacts</button>
                            <button onclick="resetMyCode()" class="w-full py-2 bg-orange-600/10 border border-orange-600/50 text-orange-500 rounded text-[10px] font-bold hover:bg-orange-600 hover:text-white transition-all uppercase">Generate New ID</button>
                            <button onclick="nukeAllData()" class="w-full py-2 bg-red-600/10 border border-red-600/50 text-red-500 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all uppercase">Factory Reset</button>
                        </div>
                       
                        <button onclick="toggleSettings()" class="w-full text-center text-[10px] text-slate-500 uppercase py-2">Close</button>
+                   </div>
+               </div>
+
+               <div id="connection-request-overlay" class="hidden absolute inset-0 z-40 glass flex items-center justify-center p-6">
+                   <div class="bg-slate-900 border border-blue-700/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
+                       <h2 class="text-blue-400 font-bold text-center uppercase tracking-widest">Connection Request</h2>
+                       <div id="request-info" class="text-[10px] text-slate-400 text-center">Incoming request from unknown contact.</div>
+                       <div class="flex gap-2">
+                           <button onclick="declineRequest()" class="flex-1 py-3 bg-slate-700 rounded-lg font-bold hover:bg-slate-600">DECLINE</button>
+                           <button onclick="acceptRequest()" class="flex-1 py-3 bg-green-600 rounded-lg font-bold hover:bg-green-500">ACCEPT</button>
+                       </div>
                    </div>
                </div>
 
@@ -159,12 +206,22 @@
 
 
        let peer, conn;
+       let myKeyPair, myPublicKey;
+       let contactSecrets = {};
+       let contactCryptoKeys = {};
+       let pendingConnection = null;
+       let pendingRequestPeer = null;
+       let pendingRequestAlias = '';
        let myAlias = localStorage.getItem('chat_alias') || "";
        let savedPeerId = localStorage.getItem('chat_peer_id') || null;
        let myId = "";
        let activePeerId = null;
-       // contacts structure: { id: { alias, sessionKey, lastSeen, messages: [] } }
+       let activeGroupId = null;
+       // contacts structure: { id: { alias, sessionKey, approved } }
        let contacts = JSON.parse(localStorage.getItem('chat_contacts') || '{}');
+       Object.values(contacts).forEach(contact => { if (contact.approved === undefined) contact.approved = true; });
+       let groups = JSON.parse(localStorage.getItem('chat_groups') || '{}');
+       let settings = Object.assign({ readReceipts: true, blockAnonymous: false, allowedContactsOnly: false, blockedList: [] }, JSON.parse(localStorage.getItem('chat_settings') || '{}'));
        let appVisible = !document.hidden;
 
 
@@ -173,40 +230,247 @@
 
 
        // --- ENCRYPTION ENGINE (PER-SESSION KEYING) ---
-       function cycle(text, key, mode) {
-           let res = "";
-           const shift = mode === 'enc' ? -key : key;
+       async function generateIdentityKeys() {
+           const pair = await crypto.subtle.generateKey(
+               { name: 'ECDH', namedCurve: 'P-521' },
+               true,
+               ['deriveBits']
+           );
+           myKeyPair = pair;
+           const rawPub = await crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+           myPublicKey = arrayBufferToBase64(rawPub);
+       }
+
+       function arrayBufferToBase64(buffer) {
+           const bytes = new Uint8Array(buffer);
+           let binary = '';
+           for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+           return btoa(binary);
+       }
+
+       function base64ToArrayBuffer(base64) {
+           const binary = atob(base64);
+           const bytes = new Uint8Array(binary.length);
+           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+           return bytes.buffer;
+       }
+
+       function concatUint8Arrays(...arrays) {
+           let length = arrays.reduce((sum, arr) => sum + arr.length, 0);
+           let result = new Uint8Array(length);
+           let offset = 0;
+           for (const arr of arrays) {
+               result.set(arr, offset);
+               offset += arr.length;
+           }
+           return result;
+       }
+
+       function u32ToBytes(value) {
+           const buffer = new ArrayBuffer(4);
+           new DataView(buffer).setUint32(0, value, false);
+           return new Uint8Array(buffer);
+       }
+
+       function bytesToU32(bytes) {
+           return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, false);
+       }
+
+       async function hmacSha512(key, data) {
+           const sig = await crypto.subtle.sign('HMAC', key, data);
+           return new Uint8Array(sig);
+       }
+
+       function constantTimeEqual(a, b) {
+           if (a.length !== b.length) return false;
+           let diff = 0;
+           for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+           return diff === 0;
+       }
+
+       async function deriveSharedSecret(pid) {
+           const contact = contacts[pid];
+           if (!contact || !contact.peerPublicKey || !myKeyPair) return null;
+           const rawPeerKey = base64ToArrayBuffer(contact.peerPublicKey);
+           const importedPeer = await crypto.subtle.importKey(
+               'raw',
+               rawPeerKey,
+               { name: 'ECDH', namedCurve: 'P-521' },
+               true,
+               []
+           );
+           const sharedBits = await crypto.subtle.deriveBits(
+               { name: 'ECDH', public: importedPeer },
+               myKeyPair.privateKey,
+               521
+           );
+           contactSecrets[pid] = arrayBufferToBase64(sharedBits);
+           contactCryptoKeys[pid] = null;
+           return sharedBits;
+       }
+
+       function saveSettings() { localStorage.setItem('chat_settings', JSON.stringify(settings)); }
+       function saveGroups() { localStorage.setItem('chat_groups', JSON.stringify(groups)); }
+       function saveContacts() { localStorage.setItem('chat_contacts', JSON.stringify(contacts)); }
+
+       function isBlocked(pid, alias) {
+           const normalizedAlias = (alias || '').toLowerCase();
+           if (settings.blockAnonymous && (!alias || normalizedAlias === 'stranger' || normalizedAlias.includes('anon'))) return true;
+           return settings.blockedList.some(item => {
+               const value = item.toLowerCase().trim();
+               return value === pid.toLowerCase() || value === normalizedAlias;
+           });
+       }
+
+       function renderSettings() {
+           document.getElementById('read-receipts-toggle').checked = settings.readReceipts;
+           document.getElementById('block-anonymous').checked = settings.blockAnonymous;
+           document.getElementById('allowed-contacts-only').checked = settings.allowedContactsOnly;
+           const blockedList = document.getElementById('blocked-list');
+           blockedList.innerHTML = settings.blockedList.map(entry => `
+               <div class="flex items-center justify-between gap-2 rounded-lg bg-slate-950 border border-slate-700 p-2 text-[9px] text-slate-300">
+                   <span class="truncate">${entry}</span>
+                   <button onclick="removeBlockedEntry('${entry.replace(/'/g,"\\'")}')" class="text-rose-400 hover:text-rose-300">×</button>
+               </div>`).join('');
+           const groupList = document.getElementById('group-list');
+           groupList.innerHTML = Object.keys(groups).map(id => {
+               const group = groups[id];
+               return `<div class="flex items-center justify-between gap-2 rounded-lg bg-slate-950 border border-slate-700 p-2 text-[9px] text-slate-300">
+                   <button onclick="selectGroup('${id}')" class="text-left flex-1 truncate">${group.name}</button>
+                   <button onclick="removeGroup('${id}')" class="text-rose-400 hover:text-rose-300">×</button>
+               </div>`;
+           }).join('');
+       }
+
+       function toggleSetting(key) {
+           settings[key] = !settings[key];
+           saveSettings();
+           renderSettings();
+       }
+
+       function addBlockedEntry() {
+           const input = document.getElementById('blocked-input');
+           const value = input.value.trim();
+           if (!value) return;
+           if (!settings.blockedList.includes(value)) {
+               settings.blockedList.push(value);
+           }
+           input.value = '';
+           saveSettings();
+           renderSettings();
+       }
+
+       function removeBlockedEntry(entry) {
+           settings.blockedList = settings.blockedList.filter(item => item !== entry);
+           saveSettings();
+           renderSettings();
+       }
+
+       function createGroup() {
+           const name = document.getElementById('group-name-input').value.trim();
+           const members = document.getElementById('group-members-input').value.split(',').map(s => s.trim()).filter(Boolean);
+           if (!name || members.length === 0) return toast('GROUP NAME AND MEMBERS REQUIRED');
+           const groupId = 'g-' + Date.now();
+           groups[groupId] = { name, members };
+           saveGroups();
+           document.getElementById('group-name-input').value = '';
+           document.getElementById('group-members-input').value = '';
+           renderSettings();
+           renderContacts();
+           toast('GROUP CREATED');
+       }
+
+       function removeGroup(id) {
+           delete groups[id];
+           if (activeGroupId === id) activeGroupId = null;
+           saveGroups();
+           renderSettings();
+           renderContacts();
+       }
+
+       function selectGroup(id) {
+           activeGroupId = id;
+           activePeerId = null;
+           document.getElementById('chat-messages').innerHTML = '';
+           document.getElementById('empty-state').classList.add('hidden');
+           renderContacts();
+       }
+
+       async function getSecretKey(pid) {
+           if (contactCryptoKeys[pid]) return contactCryptoKeys[pid];
+           if (!contactSecrets[pid] && contacts[pid]?.peerPublicKey) {
+               await deriveSharedSecret(pid);
+           }
+           const secretBase64 = contactSecrets[pid];
+           if (!secretBase64) return null;
+           const raw = base64ToArrayBuffer(secretBase64);
+           const key = await crypto.subtle.importKey(
+               'raw',
+               raw,
+               { name: 'HMAC', hash: 'SHA-512' },
+               false,
+               ['sign']
+           );
+           contactCryptoKeys[pid] = key;
+           return key;
+       }
+
+       async function encryptMessage(text, pid) {
+           const key = await getSecretKey(pid);
+           if (!key) return null;
+
+           const nonce = crypto.getRandomValues(new Uint8Array(16));
+           const blocks = [];
+           let index = 0;
+
            for (let i = 0; i < text.length; i++) {
-               let char = text[i];
-               if (text.codePointAt(i) > 0xFFFF) { char = String.fromCodePoint(text.codePointAt(i)); i++; }
-               let pos = AZ.indexOf(char);
-               if (pos !== -1) {
-                   let n = (pos + shift) % AZ.length;
-                   if (n < 0) n += AZ.length;
-                   res += mode === 'enc' ? BINARY[n] : AZ[n];
-               } else if (mode === 'dec') res += char;
+               const code = text.codePointAt(i);
+               if (code > 0xFFFF) i++;
+               const counter = u32ToBytes(index);
+               const pad = await hmacSha512(key, concatUint8Arrays(nonce, counter));
+               const plainBlock = new Uint8Array(64);
+               plainBlock.set(u32ToBytes(code), 0);
+               const cipherBlock = new Uint8Array(64);
+               for (let j = 0; j < 64; j++) cipherBlock[j] = plainBlock[j] ^ pad[j];
+               blocks.push(cipherBlock);
+               index++;
            }
-           return res;
+
+           const ciphertext = concatUint8Arrays(nonce, ...blocks);
+           const tag = await hmacSha512(key, ciphertext);
+           return arrayBufferToBase64(concatUint8Arrays(ciphertext, tag));
        }
 
+       async function decryptMessage(payload, pid) {
+           const key = await getSecretKey(pid);
+           if (!key) return null;
 
-       function decodeBinary(binStr, key) {
-           let res = "";
-           for (let i = 0; i < binStr.length; i += 8) {
-               let chunk = binStr.substring(i, i + 8);
-               let pos = BINARY.indexOf(chunk);
-               if (pos !== -1) {
-                   let n = (pos + key) % AZ.length;
-                   res += AZ[n];
-               }
+           const rawData = base64ToArrayBuffer(payload);
+           const allBytes = new Uint8Array(rawData);
+           if (allBytes.length < 16 + 64) return null;
+
+           const tag = allBytes.slice(allBytes.length - 64);
+           const ciphertext = allBytes.slice(0, allBytes.length - 64);
+           const expected = await hmacSha512(key, ciphertext);
+           if (!constantTimeEqual(expected, tag)) return null;
+
+           const nonce = ciphertext.slice(0, 16);
+           const blocks = ciphertext.slice(16);
+           if (blocks.length % 64 !== 0) return null;
+
+           let text = '';
+           const count = blocks.length / 64;
+           for (let idx = 0; idx < count; idx++) {
+               const block = blocks.slice(idx * 64, idx * 64 + 64);
+               const counter = u32ToBytes(idx);
+               const pad = await hmacSha512(key, concatUint8Arrays(nonce, counter));
+               const plainBlock = new Uint8Array(64);
+               for (let j = 0; j < 64; j++) plainBlock[j] = block[j] ^ pad[j];
+               const code = bytesToU32(plainBlock.subarray(0, 4));
+               if (code === 0) continue;
+               text += String.fromCodePoint(code);
            }
-           return res;
-       }
-
-
-       function getRotatedKey(oldKey) {
-           let next = (oldKey * 7 + 13) % AZ.length;
-           return next <= 0 ? 7 : next;
+           return text;
        }
 
 
@@ -232,11 +496,13 @@
        }
 
 
-       function completeLogin() {
+       async function completeLogin() {
            document.getElementById('user-tag').innerText = myAlias;
            document.getElementById('change-name-input').value = myAlias;
            document.getElementById('connect-overlay').classList.add('hidden');
+           await generateIdentityKeys();
            initPeer();
+           renderSettings();
            renderContacts();
        }
 
@@ -255,10 +521,9 @@
 
            // Handling incoming connections from anyone
            peer.on('connection', (c) => {
-               // If we're already talking to someone, don't necessarily kill it,
-               // but for simplicity in this 1-on-1 UI, we swap active connection.
                if (conn) conn.close();
                conn = c;
+               pendingConnection = c;
                setupEvents();
            });
        }
@@ -267,6 +532,7 @@
        function initiateConnection(targetId) {
            if (!targetId || targetId === myId) return;
           
+           activeGroupId = null;
            // Switch UI to selected contact
            activePeerId = targetId;
            document.getElementById('empty-state').classList.add('hidden');
@@ -284,62 +550,75 @@
        function setupEvents() {
            conn.on('open', () => {
                const pid = conn.peer;
-               activePeerId = pid;
-               document.getElementById('empty-state').classList.add('hidden');
-              
-               // Initialize session key for this specific contact if new
+               const needApproval = settings.allowedContactsOnly && !contacts[pid];
                if (!contacts[pid]) {
-                   contacts[pid] = { alias: "Unknown Node", id: pid, sessionKey: 42 };
+                   contacts[pid] = { alias: "Stranger", id: pid, sessionKey: 42, approved: !needApproval };
                }
-              
+               if (!needApproval) {
+                   activePeerId = pid;
+                   document.getElementById('empty-state').classList.add('hidden');
+               }
                document.getElementById('key-display').innerText = contacts[pid].sessionKey;
-               conn.send({ type: 'hi', alias: myAlias, key: contacts[pid].sessionKey });
-               toast("LINK ESTABLISHED: " + pid.substring(0,6));
+               conn.send({ type: 'hi', alias: myAlias, dhPub: myPublicKey });
+               if (!needApproval) toast("LINK ESTABLISHED: " + pid.substring(0,6));
                renderContacts();
            });
 
 
-           conn.on('data', (data) => {
+           conn.on('data', async (data) => {
                const pid = conn.peer;
-               if (!contacts[pid]) contacts[pid] = { alias: "Stranger", id: pid, sessionKey: 42 };
+               if (!contacts[pid]) contacts[pid] = { alias: "Stranger", id: pid, sessionKey: 42, approved: true };
 
 
                if (data.type === 'hi') {
-                   contacts[pid].alias = data.alias;
-                   contacts[pid].sessionKey = data.key;
+                   const alias = data.alias || 'Stranger';
+                   if (isBlocked(pid, alias)) {
+                       conn.close();
+                       return;
+                   }
+                   contacts[pid].alias = alias;
+                   if (!contacts[pid].sessionKey) contacts[pid].sessionKey = 42;
+                   if (data.dhPub) {
+                       contacts[pid].peerPublicKey = data.dhPub;
+                       deriveSharedSecret(pid).catch(() => null);
+                   }
+                   if (settings.allowedContactsOnly && !contacts[pid].approved) {
+                       showConnectionRequest(pid, alias);
+                       return;
+                   }
+                   contacts[pid].approved = true;
                    updateUIForKey(pid);
                    saveContacts();
+                   if (!activePeerId) {
+                       activePeerId = pid;
+                       document.getElementById('empty-state').classList.add('hidden');
+                   }
+                   toast("LINK ESTABLISHED: " + pid.substring(0,6));
+                   renderContacts();
                } else if (data.type === 'alias-update') {
                    contacts[pid].alias = data.alias;
                    saveContacts();
                    renderContacts();
                } else if (data.type === 'msg') {
-                   const dec = decodeBinary(data.payload, contacts[pid].sessionKey);
-                  
-                   // Show message only if this is the active chat
+                   const dec = await decryptMessage(data.payload, pid) || '[UNREADABLE]';
+
                    if (activePeerId === pid) {
-                       appendMessage(contacts[pid].alias, dec, data.payload, false, data.id, data.time);
-                       if (appVisible) {
+                       appendMessage(contacts[pid].alias, dec, data.payload, false, data.id, data.time, data.sentAt || Date.now());
+                       if (settings.readReceipts && appVisible) {
                            conn.send({ type: 'read', msgId: data.id });
                        }
                    }
 
-
-                   // Always notify if background
                    if (!appVisible || activePeerId !== pid) {
                        if (Notification.permission === "granted") {
                            new Notification(`8-Bit: ${contacts[pid].alias}`, { body: "Incoming encrypted transmission..." });
                        }
                    }
-                  
-                   // Rotate the SESSION key for this specific contact
-                   contacts[pid].sessionKey = getRotatedKey(contacts[pid].sessionKey);
+
                    updateUIForKey(pid);
                    saveContacts();
 
-
-                   // Handle Read Receipt Logic if we switch back later
-                   if (!appVisible || activePeerId !== pid) {
+                   if (settings.readReceipts && (!appVisible || activePeerId !== pid)) {
                        const refocus = () => {
                            if (!document.hidden && activePeerId === pid && conn?.open) {
                                conn.send({ type: 'read', msgId: data.id });
@@ -347,6 +626,21 @@
                            }
                        };
                        document.addEventListener('visibilitychange', refocus);
+                   }
+               } else if (data.type === 'group-msg') {
+                   const dec = await decryptMessage(data.payload, pid) || '[UNREADABLE]';
+                   const senderText = `${data.from}${data.groupName ? ' @ ' + data.groupName : ''}`;
+                   if (activeGroupId === data.groupId || activePeerId === pid) {
+                       appendMessage(senderText, dec, data.payload, false, data.id, data.time, data.sentAt || Date.now());
+                   }
+                   if (settings.readReceipts && appVisible) {
+                       conn.send({ type: 'read', msgId: data.id });
+                   }
+               } else if (data.type === 'unsend') {
+                   deleteMessage(data.msgId);
+                   if (activePeerId === pid) {
+                       appendSystemNotice('A message was unsent by your contact.');
+                       toast('PEER UNSENT A MESSAGE');
                    }
                } else if (data.type === 'read') {
                    if (activePeerId === pid) updateReadStatus(data.msgId);
@@ -358,31 +652,42 @@
                if (activePeerId === conn.peer) {
                    toast("NODE DISCONNECTED");
                }
+               if (pendingConnection === conn) pendingConnection = null;
                renderContacts();
            });
        }
 
 
-       function sendEncrypted() {
+       async function sendEncrypted() {
            const input = document.getElementById('msg-input');
            const val = input.value.trim();
-           if (!val || !conn?.open) return;
+           if (!val) return;
 
-
-           const pid = conn.peer;
            const msgId = 'm' + Date.now();
            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          
-           const enc = cycle(val, contacts[pid].sessionKey, 'enc');
-          
-           conn.send({ type: 'msg', payload: enc, id: msgId, time: time });
-           appendMessage(myAlias, val, enc, true, msgId, time);
-          
-           // Rotate key for this contact only
-           contacts[pid].sessionKey = getRotatedKey(contacts[pid].sessionKey);
+           const sentAt = Date.now();
+
+           if (activeGroupId) {
+               await sendGroupMessage(val, msgId, time, sentAt);
+               input.value = "";
+               return;
+           }
+
+           if (!conn?.open) return;
+
+           const pid = conn.peer;
+           const enc = await encryptMessage(val, pid);
+           if (!enc) {
+               toast('SECURE LINK NOT READY');
+               return;
+           }
+
+           conn.send({ type: 'msg', payload: enc, id: msgId, time: time, sentAt });
+           appendMessage(myAlias, val, enc, true, msgId, time, sentAt);
+
            updateUIForKey(pid);
            saveContacts();
-          
+
            input.value = "";
        }
 
@@ -398,7 +703,7 @@
           
            // Add to contacts if not exist
            if (!contacts[id]) {
-               contacts[id] = { alias: "Pending Node...", id: id, sessionKey: 42 };
+               contacts[id] = { alias: "Pending Node...", id: id, sessionKey: 42, approved: true };
                saveContacts();
            }
           
@@ -415,14 +720,107 @@
            renderContacts();
        }
 
+       function showConnectionRequest(pid, alias) {
+           pendingRequestPeer = pid;
+           pendingRequestAlias = alias;
+           document.getElementById('request-info').innerText = `Incoming connection request from ${alias} (${pid}). Accept to add them to contacts.`;
+           document.getElementById('connection-request-overlay').classList.remove('hidden');
+       }
 
-       function appendMessage(sender, text, binary, isMe, msgId, time) {
+       function hideConnectionRequest() {
+           document.getElementById('connection-request-overlay').classList.add('hidden');
+           pendingRequestPeer = null;
+           pendingRequestAlias = '';
+       }
+
+       function acceptRequest() {
+           if (!pendingRequestPeer) return;
+           const pid = pendingRequestPeer;
+           contacts[pid] = Object.assign(contacts[pid] || {}, {
+               alias: pendingRequestAlias,
+               id: pid,
+               sessionKey: 42,
+               approved: true
+           });
+           if (conn && conn.peer === pid) {
+               conn._approvalNeeded = false;
+           }
+           activePeerId = pid;
+           document.getElementById('empty-state').classList.add('hidden');
+           saveContacts();
+           renderContacts();
+           hideConnectionRequest();
+           toast('CONNECTION ACCEPTED');
+       }
+
+       function declineRequest() {
+           if (pendingConnection) pendingConnection.close();
+           if (conn && conn === pendingConnection) conn = null;
+           pendingConnection = null;
+           hideConnectionRequest();
+           toast('CONNECTION DECLINED');
+       }
+
+       function sendToPeer(peerId, payload) {
+           if (conn?.open && conn.peer === peerId) {
+               conn.send(payload);
+               return;
+           }
+           const temp = peer.connect(peerId);
+           temp.on('open', () => {
+               temp.send(payload);
+               setTimeout(() => temp.close(), 500);
+           });
+       }
+
+       async function sendGroupMessage(text, msgId, time, sentAt) {
+           const group = groups[activeGroupId];
+           if (!group) return toast('GROUP NOT FOUND');
+           appendMessage(myAlias, text, '[GROUP]', true, msgId, time, sentAt);
+           for (const memberId of group.members) {
+               if (!memberId || memberId === myId) continue;
+               if (!contacts[memberId]) continue;
+               const enc = await encryptMessage(text, memberId);
+               if (!enc) continue;
+               const payload = {
+                   type: 'group-msg',
+                   groupId: activeGroupId,
+                   groupName: group.name,
+                   from: myAlias,
+                   payload: enc,
+                   id: msgId,
+                   time,
+                   sentAt
+               };
+               sendToPeer(memberId, payload);
+           }
+       }
+
+       function appendSystemNotice(text) {
+           const box = document.getElementById('chat-messages');
+           const div = document.createElement('div');
+           div.className = 'flex justify-center message-anim';
+           div.innerHTML = `
+               <div class="max-w-[70%] glass p-3 rounded-2xl border border-slate-700 bg-slate-900/80 text-[10px] text-slate-400 uppercase tracking-[0.2em] text-center">
+                   ${text}
+               </div>`;
+           box.appendChild(div);
+           box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+       }
+
+
+       function appendMessage(sender, text, binary, isMe, msgId, time, sentAt = Date.now()) {
            const box = document.getElementById('chat-messages');
            const div = document.createElement('div');
            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} message-anim`;
            div.id = msgId;
+           div.dataset.sentAt = sentAt;
            const receipt = isMe ? `<div class="read-status text-slate-700 transition-colors duration-300"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>` : '';
-
+           const controls = `
+                   <div class="mt-3 flex gap-2 justify-end">
+                       <button onclick="deleteMessage('${msgId}')" class="text-[8px] uppercase tracking-[0.25em] px-2 py-1 rounded-full bg-slate-700/80 text-slate-300 hover:bg-slate-600 transition">Delete</button>
+                       ${isMe ? `<button onclick="unsendMessage('${msgId}')" class="text-[8px] uppercase tracking-[0.25em] px-2 py-1 rounded-full bg-rose-700/80 text-rose-200 hover:bg-rose-600 transition">Unsend</button>` : ''}
+                   </div>`;
 
            div.innerHTML = `
                <div class="flex items-center gap-2 mb-1 px-1">
@@ -435,6 +833,7 @@
                        <span class="truncate pr-2 uppercase">Sig: ${binary.substring(0, 10)}</span>
                        ${receipt}
                    </div>
+                   ${controls}
                </div>`;
            box.appendChild(div);
            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
@@ -456,20 +855,45 @@
        function renderContacts() {
            const list = document.getElementById('contacts-list');
            list.innerHTML = "";
+           const groupKeys = Object.keys(groups);
+           if (groupKeys.length > 0) {
+               const header = document.createElement('div');
+               header.className = 'text-[9px] font-bold text-slate-500 mb-2 tracking-[0.2em] uppercase';
+               header.innerText = 'GROUPS';
+               list.appendChild(header);
+               groupKeys.forEach(id => {
+                   const group = groups[id];
+                   const isActive = activeGroupId === id;
+                   const div = document.createElement('div');
+                   div.className = `p-3 rounded-xl border cursor-pointer transition-all ${isActive ? 'bg-blue-600/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`;
+                   div.innerHTML = `
+                       <div onclick="selectGroup('${id}')" class="flex items-center gap-3">
+                           <div class="w-2 h-2 rounded-full ${isActive ? 'bg-blue-500 shadow-[0_0_5px_#38bdf8]' : 'bg-slate-700'}"></div>
+                           <div class="flex-grow min-w-0">
+                               <div class="font-bold text-[11px] truncate uppercase ${isActive ? 'text-blue-400' : 'text-slate-300'}">${group.name}</div>
+                               <div class="text-slate-500 text-[8px] truncate font-mono">${group.members.join(', ')}</div>
+                           </div>
+                       </div>`;
+                   list.appendChild(div);
+               });
+           }
+
            const contactKeys = Object.keys(contacts);
-          
            if (contactKeys.length === 0) {
-               list.innerHTML = `<div class="text-[9px] text-slate-600 italic text-center py-4 uppercase">No saved nodes</div>`;
+               list.innerHTML += `<div class="text-[9px] text-slate-600 italic text-center py-4 uppercase">No saved contacts</div>`;
                return;
            }
 
+           const header = document.createElement('div');
+           header.className = 'text-[9px] font-bold text-slate-500 mb-2 mt-4 tracking-[0.2em] uppercase';
+           header.innerText = 'CONTACTS';
+           list.appendChild(header);
 
            contactKeys.forEach(id => {
                const isActive = activePeerId === id;
                const isOnline = (conn && conn.peer === id && conn.open);
                const div = document.createElement('div');
                div.className = `p-3 rounded-xl border cursor-pointer transition-all ${isActive ? 'bg-green-600/10 border-green-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`;
-              
                div.innerHTML = `
                    <div onclick="initiateConnection('${id}')" class="flex items-center gap-3">
                        <div class="w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-slate-700'}"></div>
@@ -484,8 +908,11 @@
 
 
        // --- SYSTEM TOOLS ---
-       function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
-       function clearContacts() { if(confirm("Permanently erase all contact history?")) { contacts={}; saveContacts(); activePeerId=null; document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); } }
+       function toggleSettings() { renderSettings(); document.getElementById('settings-modal').classList.toggle('hidden'); }
+       function clearContacts() { if(confirm("Permanently erase all contact history?")) { contacts={}; saveContacts(); activePeerId=null; activeGroupId=null; document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); } }
+       function removeActiveContact() { if (!activePeerId) { toast('NO ACTIVE CONTACT'); return; } if (confirm('Remove the selected contact from this node?')) { delete contacts[activePeerId]; activePeerId = null; saveContacts(); document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); toast('CONTACT REMOVED'); } }
+       function deleteMessage(id) { const el = document.getElementById(id); if (el) { el.remove(); toast('MESSAGE DELETED'); } }
+       function unsendMessage(id) { const el = document.getElementById(id); if (!el) { toast('MESSAGE NOT FOUND'); return; } const sentAt = parseInt(el.dataset.sentAt || '0', 10); if (!sentAt) { toast('UNSEND FAILED'); return; } if (Date.now() - sentAt > 60000) { toast('UNSEND WINDOW EXPIRED'); return; } if (!conn?.open) { toast('NO ACTIVE CONNECTION'); return; } conn.send({ type: 'unsend', msgId: id }); deleteMessage(id); toast('MESSAGE UNSENT'); }
        function resetMyCode() { if(confirm("Generate a new Node ID? Your friends will need the new ID to reach you.")) { localStorage.removeItem('chat_peer_id'); location.reload(); } }
        function nukeAllData() { if(confirm("WARNING: This will wipe your handle, ID, and all contacts. Proceed?")) { localStorage.clear(); location.reload(); } }
        function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 3000); }
