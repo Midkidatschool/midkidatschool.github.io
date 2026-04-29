@@ -248,7 +248,7 @@
        let settings = Object.assign({ readReceipts: true, blockAnonymous: false, allowedContactsOnly: false, blockedList: [] }, JSON.parse(localStorage.getItem('chat_settings') || '{}'));
        let appVisible = !document.hidden;
        let holdTimeouts = new Map();
-
+       let chatHistory = JSON.parse(localStorage.getItem('chat_history') || '{}');
 
        document.addEventListener('visibilitychange', () => appVisible = !document.hidden);
        if (Notification.permission === 'default') Notification.requestPermission();
@@ -337,6 +337,27 @@
        function saveSettings() { localStorage.setItem('chat_settings', JSON.stringify(settings)); }
        function saveGroups() { localStorage.setItem('chat_groups', JSON.stringify(groups)); }
        function saveContacts() { localStorage.setItem('chat_contacts', JSON.stringify(contacts)); }
+       function saveChatHistory() { localStorage.setItem('chat_history', JSON.stringify(chatHistory)); }
+       function getChatKey(peerId, groupId = null) { return groupId ? `group:${groupId}` : `peer:${peerId}`; }
+       function appendHistoryMessage(chatKey, msg) {
+           if (!chatKey) return;
+           chatHistory[chatKey] = chatHistory[chatKey] || [];
+           if (!chatHistory[chatKey].some(item => item.id === msg.id)) {
+               chatHistory[chatKey].push(msg);
+               saveChatHistory();
+           }
+       }
+       function removeHistoryMessage(chatKey, msgId) {
+           if (!chatKey || !chatHistory[chatKey]) return;
+           chatHistory[chatKey] = chatHistory[chatKey].filter(item => item.id !== msgId);
+           saveChatHistory();
+       }
+       function loadChatHistory(chatKey) {
+           const box = document.getElementById('chat-messages');
+           box.innerHTML = '';
+           const messages = chatHistory[chatKey] || [];
+           messages.forEach(msg => appendMessage(msg.sender, msg.text, msg.binary, msg.isMe, msg.id, msg.time, msg.sentAt || Date.now()));
+       }
 
        function isBlocked(pid, alias) {
            const normalizedAlias = (alias || '').toLowerCase();
@@ -424,8 +445,8 @@
        function selectGroup(id) {
            activeGroupId = id;
            activePeerId = null;
-           document.getElementById('chat-messages').innerHTML = '';
            document.getElementById('empty-state').classList.add('hidden');
+           loadChatHistory(getChatKey(null, id));
            renderContacts();
        }
 
@@ -654,6 +675,7 @@
            conn = peer.connect(targetId);
            setupEvents();
            renderContacts();
+           loadChatHistory(getChatKey(targetId));
        }
 
 
@@ -711,6 +733,17 @@
                    renderContacts();
                } else if (data.type === 'msg') {
                    const dec = await decryptMessage(data.payload, pid) || '[UNREADABLE]';
+                   const chatKey = getChatKey(pid);
+                   appendHistoryMessage(chatKey, {
+                       id: data.id,
+                       sender: contacts[pid].alias,
+                       text: dec,
+                       binary: data.payload,
+                       isMe: false,
+                       time: data.time,
+                       sentAt: data.sentAt || Date.now(),
+                       type: 'msg'
+                   });
 
                    if (activePeerId === pid) {
                        appendMessage(contacts[pid].alias, dec, data.payload, false, data.id, data.time, data.sentAt || Date.now());
@@ -744,6 +777,18 @@
                } else if (data.type === 'group-msg') {
                    const dec = await decryptMessage(data.payload, pid) || '[UNREADABLE]';
                    const senderText = `${data.from}${data.groupName ? ' @ ' + data.groupName : ''}`;
+                   const chatKey = getChatKey(null, data.groupId);
+                   appendHistoryMessage(chatKey, {
+                       id: data.id,
+                       sender: senderText,
+                       text: dec,
+                       binary: data.payload,
+                       isMe: false,
+                       time: data.time,
+                       sentAt: data.sentAt || Date.now(),
+                       type: 'group-msg',
+                       groupName: data.groupName
+                   });
                    if (activeGroupId === data.groupId || activePeerId === pid) {
                        appendMessage(senderText, dec, data.payload, false, data.id, data.time, data.sentAt || Date.now());
                    }
@@ -761,7 +806,7 @@
                } else if (data.type === 'unsend') {
                    deleteMessage(data.msgId);
                    if (activePeerId === pid) {
-                       appendSystemNotice('A message was unsent by your contact.');
+                       appendSystemNotice('Unsent message');
                        toast('PEER UNSENT A MESSAGE');
                    }
                } else if (data.type === 'read') {
@@ -806,6 +851,16 @@
 
            conn.send({ type: 'msg', payload: enc, id: msgId, time: time, sentAt });
            appendMessage(myAlias, val, enc, true, msgId, time, sentAt);
+           appendHistoryMessage(getChatKey(pid), {
+               id: msgId,
+               sender: myAlias,
+               text: val,
+               binary: enc,
+               isMe: true,
+               time,
+               sentAt,
+               type: 'msg'
+           });
 
            updateUIForKey(pid);
            saveContacts();
@@ -901,6 +956,17 @@
            const group = groups[activeGroupId];
            if (!group) return toast('GROUP NOT FOUND');
            appendMessage(myAlias, text, '[GROUP]', true, msgId, time, sentAt);
+           appendHistoryMessage(getChatKey(null, activeGroupId), {
+               id: msgId,
+               sender: myAlias,
+               text,
+               binary: '[GROUP]',
+               isMe: true,
+               time,
+               sentAt,
+               type: 'group-msg',
+               groupName: group.name
+           });
            for (const memberId of group.members) {
                if (!memberId || memberId === myId) continue;
                if (!contacts[memberId]) continue;
@@ -1061,7 +1127,8 @@
                activeGroupId = null;
            }
            document.getElementById('empty-state').classList.add('hidden');
-           document.getElementById('chat-messages').innerHTML = '';
+           const chatKey = getChatKey(activePeerId, activeGroupId);
+           loadChatHistory(chatKey);
            renderContacts();
        }
 
@@ -1087,8 +1154,26 @@
        function toggleSettings() { renderSettings(); document.getElementById('settings-modal').classList.toggle('hidden'); }
        function clearContacts() { if(confirm("Permanently erase all contact history?")) { contacts={}; saveContacts(); activePeerId=null; activeGroupId=null; document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); } }
        function removeActiveContact() { if (!activePeerId) { toast('NO ACTIVE CONTACT'); return; } if (confirm('Remove the selected contact from this node?')) { delete contacts[activePeerId]; activePeerId = null; saveContacts(); document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); toast('CONTACT REMOVED'); } }
-       function deleteMessage(id) { const el = document.getElementById(id); if (el) { el.remove(); toast('MESSAGE DELETED'); } }
-       function unsendMessage(id) { const el = document.getElementById(id); if (!el) { toast('MESSAGE NOT FOUND'); return; } const sentAt = parseInt(el.dataset.sentAt || '0', 10); if (!sentAt) { toast('UNSEND FAILED'); return; } if (Date.now() - sentAt > 60000) { toast('UNSEND WINDOW EXPIRED'); return; } if (!conn?.open) { toast('NO ACTIVE CONNECTION'); return; } conn.send({ type: 'unsend', msgId: id }); deleteMessage(id); toast('MESSAGE UNSENT'); }
+       function deleteMessage(id) {
+           const el = document.getElementById(id);
+           if (el) {
+               el.remove();
+               const chatKey = getChatKey(activePeerId, activeGroupId);
+               removeHistoryMessage(chatKey, id);
+               toast('MESSAGE DELETED');
+           }
+       }
+       function unsendMessage(id) {
+           const el = document.getElementById(id);
+           if (!el) { toast('MESSAGE NOT FOUND'); return; }
+           const sentAt = parseInt(el.dataset.sentAt || '0', 10);
+           if (!sentAt) { toast('UNSEND FAILED'); return; }
+           if (Date.now() - sentAt > 60000) { toast('UNSEND WINDOW EXPIRED'); return; }
+           if (!conn?.open) { toast('NO ACTIVE CONNECTION'); return; }
+           conn.send({ type: 'unsend', msgId: id });
+           deleteMessage(id);
+           toast('MESSAGE UNSENT');
+       }
        function resetMyCode() { if(confirm("Generate a new Node ID? Your friends will need the new ID to reach you.")) { localStorage.removeItem('chat_peer_id'); location.reload(); } }
        function nukeAllData() { if(confirm("WARNING: This will wipe your handle, ID, and all contacts. Proceed?")) { localStorage.clear(); location.reload(); } }
        function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 3000); }
