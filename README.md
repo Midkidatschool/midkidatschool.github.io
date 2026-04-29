@@ -37,3 +37,6 @@ Current Features:
 > Full reset (Much bye-bye!)
 > 
 > Generate new connection Id (You will need to reconnect to every contact again) (Much new code!)
+>
+> Persistant messaging (FINALLY MUCH SAVE!)
+> 
