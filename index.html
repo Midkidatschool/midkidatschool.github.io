@@ -694,23 +694,9 @@
                        }
                    }
 
-                    if (!appVisible || activePeerId !== pid) {
-                        if (Notification.permission === "granted") {
-                            const notif = new Notification(`8-Bit: ${contacts[pid].alias}`, {
-                                body: dec, 
-                                tag: pid, 
-                                renotify: true
-                            });
-
-                            notif.onclick = () => {
-                                window.focus();    
-                                if (activePeerId !== pid) {
-                                    initiateConnection(pid); 
-                                }
-                                notif.close();
-                            };
-                        }
-                    }
+                   if (!appVisible || activePeerId !== pid) {
+                       if (Notification.permission === "granted") {
+                           new Notification(`8-Bit: ${contacts[pid].alias}`, { body: "Incoming encrypted transmission..." });
                        }
                    }
 
