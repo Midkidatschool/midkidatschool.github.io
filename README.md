@@ -15,11 +15,17 @@ I currently am on update 14(ish) but have made 34 so far
 
 Current Features:
 > Encrypted messaging (Much safe message!)
+> 
 > Group chat (Much people talking!)
+> 
 > Unsend / Delete messages (Much mistakes corrected!)
+> 
 > Allowed contacts only (Much less annoying!)
+> 
 > Blocking contacts / People (Much less annoying!)
+> 
 > Adding contacts (Much people!)
+> 
 > Changing Name (Alias) (Much Name!)
 > Read Receipts (On or off) (Much ignore people!)
 > Deny messages from anonymous users. (Much block!)
