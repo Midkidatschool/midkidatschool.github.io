@@ -592,7 +592,20 @@
 
        // --- P2P CORE ---
        function initPeer() {
-           peer = savedPeerId ? new Peer(savedPeerId) : new Peer();
+           const peerOptions = {
+               host: '0.peerjs.com',
+               secure: true,
+               port: 443,
+               path: '/',
+               debug: 2,
+               config: {
+                   iceServers: [
+                       { urls: 'stun:stun.l.google.com:19302' }
+                   ]
+               }
+           };
+           peer = savedPeerId ? new Peer(savedPeerId, peerOptions) : new Peer(peerOptions);
+
            peer.on('open', (id) => {
                myId = id;
                localStorage.setItem('chat_peer_id', id);
@@ -601,6 +614,18 @@
                toast("NODE ONLINE");
            });
 
+           peer.on('error', (err) => {
+               console.error('PeerJS error:', err);
+               toast(`PEER ERROR: ${err?.type || err}`);
+           });
+
+           peer.on('disconnected', () => {
+               toast('PEER DISCONNECTED');
+           });
+
+           peer.on('close', () => {
+               toast('PEER CLOSED');
+           });
 
            // Handling incoming connections from anyone
            peer.on('connection', (c) => {
@@ -695,9 +720,13 @@
                    }
 
                    if (!appVisible || activePeerId !== pid) {
-                       if (Notification.permission === "granted") {
-                           new Notification(`8-Bit: ${contacts[pid].alias}`, { body: "Incoming encrypted transmission..." });
-                       }
+                       const senderName = contacts[pid]?.alias || 'Stranger';
+                       const preview = dec.length > 120 ? dec.slice(0, 117) + '...' : dec;
+                       showNotification(
+                           `New message from ${senderName}`,
+                           `Single chat · ${preview}`,
+                           () => activateChat(pid)
+                       );
                    }
 
                    updateUIForKey(pid);
@@ -717,6 +746,14 @@
                    const senderText = `${data.from}${data.groupName ? ' @ ' + data.groupName : ''}`;
                    if (activeGroupId === data.groupId || activePeerId === pid) {
                        appendMessage(senderText, dec, data.payload, false, data.id, data.time, data.sentAt || Date.now());
+                   }
+                   if (!appVisible || activeGroupId !== data.groupId) {
+                       const preview = dec.length > 120 ? dec.slice(0, 117) + '...' : dec;
+                       showNotification(
+                           `Group message in ${data.groupName}`,
+                           `${data.from}: ${preview}`,
+                           () => activateChat(null, data.groupId)
+                       );
                    }
                    if (settings.readReceipts && appVisible) {
                        conn.send({ type: 'read', msgId: data.id });
@@ -1015,6 +1052,38 @@
 
 
        // --- SYSTEM TOOLS ---
+       function activateChat(peerId, groupId = null) {
+           if (groupId) {
+               activeGroupId = groupId;
+               activePeerId = null;
+           } else if (peerId) {
+               activePeerId = peerId;
+               activeGroupId = null;
+           }
+           document.getElementById('empty-state').classList.add('hidden');
+           document.getElementById('chat-messages').innerHTML = '';
+           renderContacts();
+       }
+
+       function showNotification(title, body, onClick) {
+           if (Notification.permission !== 'granted') return;
+           try {
+               const notification = new Notification(title, {
+                   body,
+                   tag: title + body,
+                   renotify: true
+               });
+               notification.onclick = (event) => {
+                   event.preventDefault();
+                   window.focus();
+                   if (typeof onClick === 'function') onClick();
+                   notification.close();
+               };
+           } catch (err) {
+               console.error('Notification creation failed:', err);
+           }
+       }
+
        function toggleSettings() { renderSettings(); document.getElementById('settings-modal').classList.toggle('hidden'); }
        function clearContacts() { if(confirm("Permanently erase all contact history?")) { contacts={}; saveContacts(); activePeerId=null; activeGroupId=null; document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); } }
        function removeActiveContact() { if (!activePeerId) { toast('NO ACTIVE CONTACT'); return; } if (confirm('Remove the selected contact from this node?')) { delete contacts[activePeerId]; activePeerId = null; saveContacts(); document.getElementById('chat-messages').innerHTML=""; document.getElementById('empty-state').classList.remove('hidden'); renderContacts(); toggleSettings(); toast('CONTACT REMOVED'); } }
