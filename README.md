@@ -27,8 +27,13 @@ Current Features:
 > Adding contacts (Much people!)
 > 
 > Changing Name (Alias) (Much Name!)
+> 
 > Read Receipts (On or off) (Much ignore people!)
+> 
 > Deny messages from anonymous users. (Much block!)
+> 
 > Remove contacts (Much cut-off!)
+> 
 > Full reset (Much bye-bye!)
+> 
 > Generate new connection Id (You will need to reconnect to every contact again) (Much new code!)
